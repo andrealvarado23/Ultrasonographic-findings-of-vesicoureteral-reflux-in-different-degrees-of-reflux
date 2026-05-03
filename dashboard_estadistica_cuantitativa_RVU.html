@@ -1,0 +1,363 @@
+
+<h2 class="sr-only">Dashboard estadístico completo de tesis sobre hallazgos ecográficos y reflujo vesicoureteral. Incluye análisis descriptivo, chi-cuadrado, correlación de Spearman, Kruskal-Wallis y regresión logística.</h2>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+.wrap{padding:1rem 0 2rem}
+.tabs{display:flex;gap:4px;margin-bottom:16px;border-bottom:.5px solid var(--color-border-tertiary);padding-bottom:0}
+.tab{padding:8px 14px;font-size:12px;font-weight:500;color:var(--color-text-secondary);cursor:pointer;border-radius:6px 6px 0 0;border:.5px solid transparent;margin-bottom:-1px;background:transparent}
+.tab.active{color:var(--color-text-primary);background:var(--color-background-primary);border-color:var(--color-border-tertiary);border-bottom-color:var(--color-background-primary)}
+.panel{display:none}.panel.active{display:block}
+.card{background:var(--color-background-primary);border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:14px 16px;margin-bottom:14px}
+.sec{font-size:11px;font-weight:500;color:var(--color-text-secondary);letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px}
+.metric-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.metric{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px}
+.mlabel{font-size:11px;color:var(--color-text-secondary);margin-bottom:2px}
+.mval{font-size:19px;font-weight:500;color:var(--color-text-primary)}
+.msub{font-size:10px;color:var(--color-text-tertiary);margin-top:1px}
+table{width:100%;border-collapse:collapse;font-size:11.5px}
+th{font-weight:500;color:var(--color-text-secondary);text-align:left;padding:5px 8px;border-bottom:.5px solid var(--color-border-tertiary);font-size:11px}
+td{padding:5px 8px;border-bottom:.5px solid var(--color-border-tertiary);color:var(--color-text-primary)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--color-background-secondary)}
+.sig{color:#1D9E75;font-weight:500}.ns{color:#888780}
+.badge{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:500}
+.b-green{background:#E1F5EE;color:#0F6E56}.b-gray{background:#F1EFE8;color:#5F5E5A}.b-amber{background:#FAEEDA;color:#854F0B}.b-red{background:#FAECE7;color:#993C1D}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--color-text-secondary);margin-bottom:10px}
+.ld{width:10px;height:10px;border-radius:2px;display:inline-block;vertical-align:middle;margin-right:3px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+</style>
+
+<div class="wrap">
+<div class="metric-row">
+  <div class="metric"><p class="mlabel">N total</p><p class="mval">400</p><p class="msub">unidades renales</p></div>
+  <div class="metric"><p class="mlabel">Con RVU</p><p class="mval">260</p><p class="msub">65.0% — grados I–V</p></div>
+  <div class="metric"><p class="mlabel">Alto grado (III–V)</p><p class="mval">92</p><p class="msub">23.0% del total</p></div>
+  <div class="metric"><p class="mlabel">Kruskal-Wallis score</p><p class="mval">H=292</p><p class="msub">p &lt; 0.001</p></div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('desc')">① Descriptivo</div>
+  <div class="tab" onclick="showTab('chi2')">② Chi² / OR</div>
+  <div class="tab" onclick="showTab('spearman')">③ Spearman</div>
+  <div class="tab" onclick="showTab('kruskal')">④ Score / Kruskal</div>
+  <div class="tab" onclick="showTab('logit')">⑤ Regresión logística</div>
+  <div class="tab" onclick="showTab('heatmap')">⑥ Mapa de calor</div>
+</div>
+
+<!-- PANEL 1: DESCRIPTIVO -->
+<div id="tab-desc" class="panel active">
+  <div class="card">
+    <p class="sec">Frecuencia de hallazgos ecográficos por grado de RVU</p>
+    <div style="position:relative;width:100%;height:340px"><canvas id="descChart" role="img" aria-label="Barras agrupadas de frecuencia de hallazgos por grado de RVU">Dilatación de pelvis es el hallazgo más frecuente. A mayor grado de RVU, mayor frecuencia de todos los hallazgos.</canvas></div>
+  </div>
+  <div class="card">
+    <p class="sec">Tabla descriptiva — n (%) por grado de RVU</p>
+    <table>
+      <thead><tr><th>Hallazgo</th><th>Total n (%)</th><th>Sin RVU</th><th>Grado I</th><th>Grado II</th><th>Grado III</th><th>Grado IV</th><th>Grado V</th></tr></thead>
+      <tbody id="descTable"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- PANEL 2: CHI2 -->
+<div id="tab-chi2" class="panel">
+  <div class="card">
+    <p class="sec">Asociación con alto grado de RVU (III–V vs. resto) — Chi² y Odds Ratio</p>
+    <table>
+      <thead><tr><th>Hallazgo</th><th>χ²</th><th>p-valor</th><th>OR</th><th>IC 95%</th><th>Sig.</th></tr></thead>
+      <tbody id="chi2Table"></tbody>
+    </table>
+    <p style="font-size:10px;color:var(--color-text-tertiary);margin-top:8px">*p&lt;0.05 estadísticamente significativo. OR=Odds ratio ajustado. IC=Intervalo de confianza 95%.</p>
+  </div>
+  <div class="card">
+    <p class="sec">Odds Ratio — hallazgos ecográficos vs. alto grado RVU (III–V)</p>
+    <div class="legend"><span><span class="ld" style="background:#1D9E75"></span>Dilataciones</span><span><span class="ld" style="background:#378ADD"></span>Engrosamientos</span><span><span class="ld" style="background:#D85A30"></span>Daño renal</span></div>
+    <div style="position:relative;width:100%;height:280px"><canvas id="orChart" role="img" aria-label="Odds ratios de hallazgos ecográficos para predecir alto grado de RVU. Todos son significativos con OR superiores a 11.">OR más altos: Dilat. ureteral 24.9, Increm. ecogenicidad 22.9, Dilat. calicial 20.1.</canvas></div>
+  </div>
+</div>
+
+<!-- PANEL 3: SPEARMAN -->
+<div id="tab-spearman" class="panel">
+  <div class="card">
+    <p class="sec">Correlación de Spearman — hallazgo ecográfico vs. grado numérico de RVU</p>
+    <div style="position:relative;width:100%;height:280px"><canvas id="spearChart" role="img" aria-label="Correlación de Spearman entre presencia de hallazgos y grado de RVU. Todos son positivos y significativos, con rho entre 0.37 y 0.63.">Todos los hallazgos tienen correlación positiva con el grado de RVU. Mayor rho en dilataciones (0.62–0.63).</canvas></div>
+  </div>
+  <div class="card">
+    <p class="sec">Tabla de correlaciones — gradiente dosis-respuesta</p>
+    <table>
+      <thead><tr><th>Hallazgo</th><th>ρ (rho)</th><th>Interpretación</th><th>p-valor</th></tr></thead>
+      <tbody id="spearTable"></tbody>
+    </table>
+    <p style="font-size:10px;color:var(--color-text-tertiary);margin-top:8px">Todos los p-valores &lt; 0.001. ρ &gt; 0.6 = correlación fuerte; 0.4–0.6 = moderada; &lt; 0.4 = débil.</p>
+  </div>
+</div>
+
+<!-- PANEL 4: KRUSKAL -->
+<div id="tab-kruskal" class="panel">
+  <div class="card">
+    <p class="sec">Score ecográfico (nº hallazgos positivos) por grado de RVU — Kruskal-Wallis H=292.4, p&lt;0.001</p>
+    <div style="position:relative;width:100%;height:260px"><canvas id="scoreChart" role="img" aria-label="Media del score ecográfico por grado de RVU. Gradiente ascendente claro: Sin RVU 0.49, Grado V 8.75.">Sin RVU media 0.49, Grado I 1.30, Grado II 2.57, Grado III 4.67, Grado IV 7.14, Grado V 8.75.</canvas></div>
+  </div>
+  <div class="card">
+    <p class="sec">Estadística descriptiva del score ecográfico</p>
+    <table>
+      <thead><tr><th>Grado RVU</th><th>n</th><th>Media</th><th>Mediana</th><th>DE</th><th>Interpretación</th></tr></thead>
+      <tbody>
+        <tr><td>Sin RVU</td><td>140</td><td>0.49</td><td>0.0</td><td>0.93</td><td><span class="badge b-gray">Ecografía normal</span></td></tr>
+        <tr><td>Grado I</td><td>80</td><td>1.30</td><td>1.0</td><td>1.20</td><td><span class="badge b-green">1 hallazgo leve</span></td></tr>
+        <tr><td>Grado II</td><td>88</td><td>2.57</td><td>3.0</td><td>1.45</td><td><span class="badge b-green">2–3 hallazgos</span></td></tr>
+        <tr><td>Grado III</td><td>48</td><td>4.67</td><td>5.0</td><td>1.82</td><td><span class="badge b-amber">4–5 hallazgos</span></td></tr>
+        <tr><td>Grado IV</td><td>28</td><td>7.14</td><td>7.0</td><td>1.53</td><td><span class="badge b-red">7 hallazgos</span></td></tr>
+        <tr><td>Grado V</td><td>16</td><td>8.75</td><td>9.0</td><td>1.24</td><td><span class="badge b-red">8–9 hallazgos</span></td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:10px;color:var(--color-text-tertiary);margin-top:8px">DE = Desviación estándar. Score de 0 a 10 (nº de hallazgos ecográficos positivos por unidad renal).</p>
+  </div>
+</div>
+
+<!-- PANEL 5: LOGÍSTICO -->
+<div id="tab-logit" class="panel">
+  <div class="card">
+    <p class="sec">Regresión logística — predictores independientes de alto grado RVU (III–V)</p>
+    <div style="position:relative;width:100%;height:300px"><canvas id="logitChart" role="img" aria-label="Odds ratios ajustados de regresión logística para predicción de alto grado de RVU. Dilatación ureteral es el predictor más fuerte con OR 7.44.">Dilat. ureteral OR=7.44, Increm. ecogen. OR=4.77, Engros. pared vesical OR=4.47.</canvas></div>
+  </div>
+  <div class="card">
+    <p class="sec">Tabla de coeficientes — OR ajustados (IC 95% ± 1.96·SE)</p>
+    <table>
+      <thead><tr><th>Variable</th><th>Coeficiente β</th><th>OR ajustado</th><th>Dirección</th></tr></thead>
+      <tbody id="logitTable"></tbody>
+    </table>
+    <p style="font-size:10px;color:var(--color-text-tertiary);margin-top:8px">Variable dependiente: RVU alto grado (III–V)=1 vs. bajo grado/sin RVU=0.</p>
+  </div>
+</div>
+
+<!-- PANEL 6: HEATMAP -->
+<div id="tab-heatmap" class="panel">
+  <div class="card">
+    <p class="sec">Mapa de calor — % positivos por hallazgo y grado de RVU</p>
+    <canvas id="heatCanvas" role="img" aria-label="Mapa de calor que muestra porcentaje de positividad de cada hallazgo ecográfico según grado de RVU. Colores más intensos indican mayor frecuencia.">A mayor grado de RVU, mayor intensidad de color en todos los hallazgos ecográficos.</canvas>
+  </div>
+</div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
+const tc = isDark?'rgba(255,255,255,.65)':'rgba(0,0,0,.5)';
+const gc = isDark?'rgba(255,255,255,.07)':'rgba(0,0,0,.06)';
+
+function showTab(id){
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  const panels=['desc','chi2','spearman','kruskal','logit','heatmap'];
+  const idx=panels.indexOf(id);
+  document.querySelectorAll('.tab')[idx].classList.add('active');
+  document.getElementById('tab-'+id).classList.add('active');
+  if(id==='heatmap') drawHeatmap();
+}
+
+// ── DATA ──────────────────────────────────────────────────
+const grades=['Sin RVU','Grado I','Grado II','Grado III','Grado IV','Grado V'];
+const gradeN=[140,80,88,48,28,16];
+
+const hallazgos=[
+  {label:'Dilat. pelvis',      total:210, pct:52.5, byG:[2.1,27.5,64.8,89.6,96.4,100], color:'#1D9E75', rho:0.625, chi2:74.18,OR:17.78,ci:'9.35–33.80', coef:1.449,orLR:4.26},
+  {label:'Dilat. ureteral',    total:145, pct:36.2, byG:[0.7,11.2,38.6,83.3,96.4,100], color:'#1D9E75', rho:0.634, chi2:130.1,OR:24.92,ci:'12.4–50.0',  coef:2.007,orLR:7.44},
+  {label:'Dilat. calicial',    total:135, pct:33.8, byG:[0.7,10.0,36.4,79.2,89.3,93.8], color:'#1D9E75', rho:0.626, chi2:124.7,OR:20.05,ci:'10.0–40.2',  coef:1.180,orLR:3.25},
+  {label:'Engros. pared ves.', total:88,  pct:22.0, byG:[0.7,5.0,18.2,54.2,78.6,93.8], color:'#378ADD', rho:0.518, chi2:108.2,OR:14.55,ci:'7.0–30.2',   coef:1.497,orLR:4.47},
+  {label:'Engros. urot. pelv.',total:92,  pct:23.0, byG:[0.7,5.0,18.2,62.5,71.4,93.8], color:'#378ADD', rho:0.530, chi2:105.3,OR:13.75,ci:'6.7–28.3',   coef:0.843,orLR:2.32},
+  {label:'Engros. urot. urét.',total:91,  pct:22.8, byG:[0.7,3.8,17.0,60.4,78.6,87.5], color:'#378ADD', rho:0.500, chi2:113.4,OR:15.42,ci:'7.4–32.0',   coef:1.337,orLR:3.81},
+  {label:'Diferenc. córtico.', total:61,  pct:15.2, byG:[0.0,1.2,5.7,41.7,67.9,93.8],  color:'#D85A30', rho:0.468, chi2:108.2,OR:19.53,ci:'8.7–43.9',   coef:1.187,orLR:3.28},
+  {label:'Dismin. parénquima', total:52,  pct:13.0, byG:[0.0,0.0,4.5,33.3,64.3,93.8],  color:'#D85A30', rho:0.367, chi2:69.16,OR:11.73,ci:'5.3–26.0',   coef:1.069,orLR:2.91},
+  {label:'Dismin. tamaño',     total:50,  pct:12.5, byG:[0.0,0.0,3.4,33.3,64.3,87.5],  color:'#D85A30', rho:0.396, chi2:68.27,OR:11.99,ci:'5.4–26.5',   coef:1.205,orLR:3.34},
+  {label:'Increm. ecogen.',    total:39,  pct:9.8,  byG:[0.0,0.0,2.3,22.9,60.7,81.3],  color:'#D85A30', rho:0.396, chi2:81.43,OR:22.93,ci:'9.3–56.5',   coef:1.562,orLR:4.77},
+];
+
+// ── PANEL 1: DESC TABLE ──────────────────────────────────
+const descTBody = document.getElementById('descTable');
+hallazgos.forEach(h=>{
+  const tr=document.createElement('tr');
+  tr.innerHTML=`<td><b>${h.label}</b></td><td>${h.total} (${h.pct}%)</td>${h.byG.map((v,i)=>`<td>${Math.round(v*gradeN[i]/100)} (${v}%)</td>`).join('')}`;
+  descTBody.appendChild(tr);
+});
+
+// ── PANEL 1: GROUPED BAR ──────────────────────────────────
+new Chart(document.getElementById('descChart'),{
+  type:'bar',
+  data:{
+    labels:hallazgos.map(h=>h.label),
+    datasets:grades.map((g,gi)=>({
+      label:g,
+      data:hallazgos.map(h=>Math.round(h.byG[gi]*gradeN[gi]/100)),
+      backgroundColor:['#D3D1C7','#9FE1CB','#5DCAA5','#EF9F27','#D85A30','#993C1D'][gi],
+      borderRadius:2,stack:'g'
+    }))
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom',labels:{font:{size:10},color:tc,boxWidth:10,padding:8}}},
+    scales:{
+      x:{ticks:{color:tc,font:{size:9},maxRotation:35},grid:{display:false}},
+      y:{ticks:{color:tc,font:{size:10}},grid:{color:gc},title:{display:true,text:'n casos positivos',color:tc,font:{size:10}}}
+    }
+  }
+});
+
+// ── PANEL 2: CHI2 TABLE ──────────────────────────────────
+const chi2Body=document.getElementById('chi2Table');
+hallazgos.forEach(h=>{
+  const tr=document.createElement('tr');
+  const pval=h.chi2>10?'< 0.001':'< 0.01';
+  tr.innerHTML=`<td>${h.label}</td><td>${h.chi2}</td><td class="sig">${pval}</td><td><b>${h.OR}</b></td><td>${h.ci}</td><td><span class="badge b-green">p&lt;0.001</span></td>`;
+  chi2Body.appendChild(tr);
+});
+
+// ── PANEL 2: OR CHART ──────────────────────────────────
+new Chart(document.getElementById('orChart'),{
+  type:'bar',
+  data:{
+    labels:hallazgos.map(h=>h.label),
+    datasets:[{data:hallazgos.map(h=>h.OR),backgroundColor:hallazgos.map(h=>h.color),borderRadius:3,borderSkipped:false}]
+  },
+  options:{
+    indexAxis:'y',responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` OR = ${ctx.raw}`}}},
+    scales:{
+      x:{min:0,ticks:{color:tc,font:{size:10}},grid:{color:gc},title:{display:true,text:'Odds Ratio',color:tc,font:{size:10}}},
+      y:{ticks:{color:tc,font:{size:10},autoSkip:false},grid:{display:false}}
+    }
+  }
+});
+
+// ── PANEL 3: SPEARMAN CHART ──────────────────────────────
+new Chart(document.getElementById('spearChart'),{
+  type:'bar',
+  data:{
+    labels:hallazgos.map(h=>h.label),
+    datasets:[{
+      data:hallazgos.map(h=>h.rho),
+      backgroundColor:hallazgos.map(h=>h.rho>=0.6?'#1D9E75':h.rho>=0.4?'#378ADD':'#D85A30'),
+      borderRadius:3,borderSkipped:false
+    }]
+  },
+  options:{
+    indexAxis:'y',responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ρ = ${ctx.raw} (p<0.001)`}}},
+    scales:{
+      x:{min:0,max:0.8,ticks:{color:tc,font:{size:10}},grid:{color:gc},title:{display:true,text:'ρ de Spearman',color:tc,font:{size:10}}},
+      y:{ticks:{color:tc,font:{size:10},autoSkip:false},grid:{display:false}}
+    }
+  }
+});
+
+// ── PANEL 3: SPEARMAN TABLE ──────────────────────────────
+const spearBody=document.getElementById('spearTable');
+hallazgos.forEach(h=>{
+  const interp=h.rho>=0.6?'Fuerte':h.rho>=0.4?'Moderada':'Débil-moderada';
+  const badge=h.rho>=0.6?'b-green':h.rho>=0.4?'b-amber':'b-gray';
+  const tr=document.createElement('tr');
+  tr.innerHTML=`<td>${h.label}</td><td><b>${h.rho}</b></td><td><span class="badge ${badge}">${interp}</span></td><td class="sig">&lt; 0.001</td>`;
+  spearBody.appendChild(tr);
+});
+
+// ── PANEL 4: SCORE CHART ──────────────────────────────────
+new Chart(document.getElementById('scoreChart'),{
+  type:'bar',
+  data:{
+    labels:grades,
+    datasets:[{
+      label:'Media del score',
+      data:[0.49,1.30,2.57,4.67,7.14,8.75],
+      backgroundColor:['#D3D1C7','#9FE1CB','#5DCAA5','#EF9F27','#D85A30','#993C1D'],
+      borderRadius:4,
+    },{
+      label:'Mediana',
+      type:'line',
+      data:[0.0,1.0,3.0,5.0,7.0,9.0],
+      borderColor:'#378ADD',backgroundColor:'transparent',
+      pointBackgroundColor:'#378ADD',pointRadius:5,tension:0.3,borderWidth:2,
+    }]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom',labels:{font:{size:10},color:tc,boxWidth:10,padding:8}}},
+    scales:{
+      x:{ticks:{color:tc,font:{size:11}},grid:{display:false}},
+      y:{min:0,max:10,ticks:{color:tc,font:{size:10},stepSize:2},grid:{color:gc},
+         title:{display:true,text:'Nº hallazgos positivos (score)',color:tc,font:{size:10}}}
+    }
+  }
+});
+
+// ── PANEL 5: LOGIT TABLE ──────────────────────────────────
+const logitBody=document.getElementById('logitTable');
+const logitData=[...hallazgos].sort((a,b)=>b.orLR-a.orLR);
+logitData.forEach(h=>{
+  const dir=h.coef>0?'↑ Mayor riesgo':'↓ Protector';
+  const badge=h.coef>1?'b-red':h.coef>0?'b-amber':'b-green';
+  const tr=document.createElement('tr');
+  tr.innerHTML=`<td>${h.label}</td><td>${h.coef}</td><td><b>${h.orLR}</b></td><td><span class="badge ${badge}">${dir}</span></td>`;
+  logitBody.appendChild(tr);
+});
+
+// ── PANEL 5: LOGIT CHART ──────────────────────────────────
+new Chart(document.getElementById('logitChart'),{
+  type:'bar',
+  data:{
+    labels:logitData.map(h=>h.label),
+    datasets:[{data:logitData.map(h=>h.orLR),backgroundColor:logitData.map(h=>h.color),borderRadius:3,borderSkipped:false}]
+  },
+  options:{
+    indexAxis:'y',responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` OR ajustado = ${ctx.raw}`}}},
+    scales:{
+      x:{min:0,ticks:{color:tc,font:{size:10}},grid:{color:gc},title:{display:true,text:'OR ajustado',color:tc,font:{size:10}}},
+      y:{ticks:{color:tc,font:{size:10},autoSkip:false},grid:{display:false}}
+    }
+  }
+});
+
+// ── PANEL 6: HEATMAP ──────────────────────────────────────
+function drawHeatmap(){
+  const canvas=document.getElementById('heatCanvas');
+  if(!canvas||canvas._drawn) return;
+  canvas._drawn=true;
+  const labels=hallazgos.map(h=>h.label);
+  const rows=hallazgos.length; const cols=grades.length;
+  const cw=90; const rh=34; const lw=145; const top=60;
+  canvas.width=lw+cols*cw+20; canvas.height=top+rows*rh+20;
+  const ctx=canvas.getContext('2d');
+  const bg=isDark?'#2C2C2A':'#FFFFFF';
+  ctx.fillStyle=bg; ctx.fillRect(0,0,canvas.width,canvas.height);
+  // Header
+  grades.forEach((g,gi)=>{
+    ctx.fillStyle=isDark?'rgba(255,255,255,.55)':'rgba(0,0,0,.45)';
+    ctx.font='500 11px sans-serif'; ctx.textAlign='center';
+    ctx.fillText(g,lw+gi*cw+cw/2,top-10);
+  });
+  // Rows
+  hallazgos.forEach((h,ri)=>{
+    ctx.fillStyle=isDark?'rgba(255,255,255,.7)':'rgba(0,0,0,.6)';
+    ctx.font='11px sans-serif'; ctx.textAlign='right';
+    ctx.fillText(h.label,lw-6,top+ri*rh+rh/2+4);
+    h.byG.forEach((v,gi)=>{
+      const t=v/100;
+      // Teal gradient
+      const r=Math.round(29+(t*(8-29)));
+      const g2=Math.round(158+(t*(80-158)));
+      const b=Math.round(117+(t*(65-117)));
+      ctx.fillStyle=`rgb(${r},${g2},${b})`;
+      ctx.beginPath();
+      ctx.roundRect(lw+gi*cw+4,top+ri*rh+4,cw-8,rh-8,3);
+      ctx.fill();
+      const textColor=v>50?'#ffffff':'#0F6E56';
+      ctx.fillStyle=textColor;
+      ctx.font='500 11px sans-serif'; ctx.textAlign='center';
+      ctx.fillText(v+'%',lw+gi*cw+cw/2,top+ri*rh+rh/2+4);
+    });
+  });
+  canvas.style.width='100%'; canvas.style.height='auto';
+}
+</script>
